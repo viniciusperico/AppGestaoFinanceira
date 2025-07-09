@@ -1,5 +1,5 @@
 import CreditCardShell from "@/components/credit-card-shell";
-import Footer from "@/components/footer";
+import Footer from "../../components/footer";
 import Header from "@/components/header";
 import { Sidebar, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
