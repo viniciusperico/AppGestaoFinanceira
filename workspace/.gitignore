@@ -1,0 +1,22 @@
+# Dependencies
+/node_modules
+
+# Next.js
+/.next/
+/out/
+
+# Local Env Files - IMPORTANT: Do not commit your secrets!
+.env
+.env*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Auto-generated
+next-env.d.ts
+*.tsbuildinfo
+.vercel
+.turbo
