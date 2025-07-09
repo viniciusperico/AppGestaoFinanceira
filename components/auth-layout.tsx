@@ -8,9 +8,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <div className="grid flex-1 lg:grid-cols-2">
         <div className="flex flex-col items-center justify-center p-6 lg:p-10">
           <div className="w-full max-w-md">
-            <div className="mb-8 flex flex-col items-center gap-3 text-center text-foreground">
-              <CircleDollarSign className="h-10 w-10 lg:hidden" />
-              <h1 className="font-headline text-3xl font-bold lg:hidden">Controle de Gastos</h1>
+            <div className="mb-8 flex flex-col items-center gap-3 text-center text-foreground lg:hidden">
+              <CircleDollarSign className="h-10 w-10" />
+              <h1 className="font-headline text-3xl font-bold">Controle de Gastos</h1>
             </div>
             {children}
           </div>
