@@ -1,23 +1,22 @@
-import { CircleDollarSign } from "lucide-react";
-import React from "react";
+import DashboardShell from "@/components/dashboard-shell";
+import Footer from "@/components/footer";
+import Header from "@/components/header";
+import { Sidebar, SidebarInset } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
 
-export default function AuthLayout({ children }: { children: React.ReactNode }) {
+export default function Home() {
   return (
-    <div className="grid min-h-screen w-full lg:grid-cols-2">
-      <div className="flex items-center justify-center p-6 lg:p-10">
-        <div className="w-full max-w-md">
-          {children}
-        </div>
-      </div>
-      <div className="hidden bg-muted lg:flex lg:flex-col lg:items-center lg:justify-center lg:p-10">
-        <div className="flex items-center gap-4 text-foreground">
-            <CircleDollarSign className="h-12 w-12" />
-            <div className="flex flex-col">
-                <h1 className="font-headline text-4xl font-bold">Controle de Gastos</h1>
-                <p className="text-lg text-muted-foreground">Sua vida financeira, simplificada.</p>
-            </div>
-        </div>
-      </div>
-    </div>
+    <>
+      <Sidebar className="border-r">
+        <AppSidebar />
+      </Sidebar>
+      <SidebarInset>
+        <Header />
+        <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+          <DashboardShell />
+        </main>
+        <Footer />
+      </SidebarInset>
+    </>
   );
 }
