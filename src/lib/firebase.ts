@@ -11,8 +11,22 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-const app: FirebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const auth: Auth = getAuth(app);
-const db: Firestore = getFirestore(app);
+// Only initialize Firebase if all config values are provided
+const areAllConfigValuesPresent = Object.values(firebaseConfig).every(value => !!value);
 
+let app: FirebaseApp;
+let auth: Auth;
+let db: Firestore;
+
+if (areAllConfigValuesPresent) {
+  app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+  auth = getAuth(app);
+  db = getFirestore(app);
+} else {
+    if (process.env.NODE_ENV !== 'production') {
+        console.warn("Firebase config is incomplete. Firebase services will be disabled.");
+    }
+}
+
+// @ts-ignore - These might be uninitialized if config is missing, which is handled by the check.
 export { app, auth, db };
