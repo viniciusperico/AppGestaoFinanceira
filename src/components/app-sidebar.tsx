@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, BarChart2, CreditCard, CircleDollarSign } from 'lucide-react';
+import { Home, BarChart2, CreditCard, CircleDollarSign, Settings } from 'lucide-react';
 import { SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
 
 export function AppSidebar() {
@@ -39,6 +39,14 @@ export function AppSidebar() {
               <Link href="/credit-card">
                 <CreditCard />
                 <span>Cartões de Crédito</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+           <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={pathname === '/settings'} tooltip="Configurações">
+              <Link href="/settings">
+                <Settings />
+                <span>Configurações</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
