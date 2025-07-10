@@ -7,17 +7,20 @@ import { useTransactions } from '@/components/transaction-provider';
 import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { format, addMonths, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { categories } from '@/lib/categories';
 import { Button } from './ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useCategories } from './category-provider';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#d0ed57'];
 
 export default function ReportsShell() {
-  const { transactions, loading } = useTransactions();
+  const { transactions, loading: transactionsLoading } = useTransactions();
+  const { categories, loading: categoriesLoading } = useCategories();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const isMobile = useIsMobile();
+
+  const loading = transactionsLoading || categoriesLoading;
 
   const handlePreviousMonth = () => {
     setCurrentMonth(prev => subMonths(prev, 1));
@@ -73,7 +76,7 @@ export default function ReportsShell() {
                transactionDate.getFullYear() === currentMonth.getFullYear();
       })
       .forEach(t => {
-        const categoryLabel = categories.find(c => c.value === t.category)?.label || 'Outros';
+        const categoryLabel = categories.find(c => c.id === t.category)?.name || 'Outros';
         if (!expenseByCategory[categoryLabel]) {
           expenseByCategory[categoryLabel] = 0;
         }
@@ -81,7 +84,7 @@ export default function ReportsShell() {
       });
 
     return Object.entries(expenseByCategory).map(([name, value]) => ({ name, value }));
-  }, [transactions, loading, currentMonth]);
+  }, [transactions, loading, currentMonth, categories]);
   
   if (loading) {
     return (

@@ -1,5 +1,5 @@
 import type { Category } from "@/types";
-import { Car, Home, UtensilsCrossed, Smile, HeartPulse, ShoppingBag, DollarSign, Sprout } from "lucide-react";
+import { Car, Home, UtensilsCrossed, Smile, HeartPulse, ShoppingBag, DollarSign, Sprout, Repeat } from "lucide-react";
 
 export const categories: Category[] = [
   { value: 'moradia', label: 'Moradia', icon: Home },
@@ -9,5 +9,6 @@ export const categories: Category[] = [
   { value: 'saude', label: 'Saúde', icon: HeartPulse },
   { value: 'compras', label: 'Compras', icon: ShoppingBag },
   { value: 'salario', label: 'Salário', icon: DollarSign },
+  { value: 'recorrente', label: 'Recorrente', icon: Repeat },
   { value: 'outros', label: 'Outros', icon: Sprout },
 ];

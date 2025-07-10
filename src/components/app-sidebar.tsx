@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { CircleDollarSign, Home, BarChart2, CreditCard } from 'lucide-react';
+import { Home, BarChart2, CreditCard, CircleDollarSign } from 'lucide-react';
 import { SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
 
 export function AppSidebar() {

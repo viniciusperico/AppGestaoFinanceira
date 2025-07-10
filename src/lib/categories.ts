@@ -1,13 +1,20 @@
-import type { Category } from "@/types";
-import { Car, Home, UtensilsCrossed, Smile, HeartPulse, ShoppingBag, DollarSign, Sprout } from "lucide-react";
+import { Car, Home, UtensilsCrossed, Smile, HeartPulse, ShoppingBag, DollarSign, Sprout, Repeat, type LucideIcon } from "lucide-react";
+import type { IconName } from "./icon-map";
 
-export const categories: Category[] = [
-  { value: 'moradia', label: 'Moradia', icon: Home },
-  { value: 'alimentacao', label: 'Alimentação', icon: UtensilsCrossed },
-  { value: 'transporte', label: 'Transporte', icon: Car },
-  { value: 'lazer', label: 'Lazer', icon: Smile },
-  { value: 'saude', label: 'Saúde', icon: HeartPulse },
-  { value: 'compras', label: 'Compras', icon: ShoppingBag },
-  { value: 'salario', label: 'Salário', icon: DollarSign },
-  { value: 'outros', label: 'Outros', icon: Sprout },
+export interface DefaultCategory {
+  id: string;
+  name: string;
+  icon: IconName;
+}
+
+export const defaultCategories: DefaultCategory[] = [
+  { id: 'moradia', name: 'Moradia', icon: 'Home' },
+  { id: 'alimentacao', name: 'Alimentação', icon: 'UtensilsCrossed' },
+  { id: 'transporte', name: 'Transporte', icon: 'Car' },
+  { id: 'lazer', name: 'Lazer', icon: 'Smile' },
+  { id: 'saude', name: 'Saúde', icon: 'HeartPulse' },
+  { id: 'compras', name: 'Compras', icon: 'ShoppingBag' },
+  { id: 'salario', name: 'Salário', icon: 'DollarSign' },
+  { id: 'recorrente', name: 'Recorrente', icon: 'Repeat' },
+  { id: 'outros', name: 'Outros', icon: 'Sprout' },
 ];

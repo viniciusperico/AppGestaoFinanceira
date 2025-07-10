@@ -6,6 +6,7 @@ import { SidebarProvider } from '@/components/ui/sidebar';
 import { TransactionProvider } from '@/components/transaction-provider';
 import { CreditCardProvider } from '@/components/credit-card-provider';
 import { ThemeProvider } from '@/components/theme-provider';
+import { CategoryProvider } from '@/components/category-provider';
 
 export const metadata: Metadata = {
   title: 'Controle de Gastos Simples',
@@ -29,6 +30,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lexend:wght@400;500;600;700&display=swap" rel="stylesheet" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
       </head>
       <body className="font-body antialiased">
         <ThemeProvider
@@ -36,13 +38,15 @@ export default function RootLayout({
           storageKey="gastos-theme"
         >
           <AuthProvider>
-            <TransactionProvider>
-              <CreditCardProvider>
-                <SidebarProvider>
-                  {children}
-                </SidebarProvider>
-              </CreditCardProvider>
-            </TransactionProvider>
+            <CategoryProvider>
+              <TransactionProvider>
+                <CreditCardProvider>
+                  <SidebarProvider>
+                    {children}
+                  </SidebarProvider>
+                </CreditCardProvider>
+              </TransactionProvider>
+            </CategoryProvider>
             <Toaster />
           </AuthProvider>
         </ThemeProvider>

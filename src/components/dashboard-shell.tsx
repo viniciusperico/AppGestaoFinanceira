@@ -37,11 +37,12 @@ import { cn } from '@/lib/utils';
 import { format, addMonths, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
-import { categories } from '@/lib/categories';
 import { Bar, BarChart as RechartsBarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import { Checkbox } from './ui/checkbox';
 import { useTransactions } from '@/components/transaction-provider';
 import { ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogDescription, ResponsiveDialogFooter, ResponsiveDialogHeader, ResponsiveDialogTitle, ResponsiveDialogTrigger } from './ui/responsive-dialog';
+import { useCategories } from './category-provider';
+import { getIcon } from '@/lib/icon-map';
 
 const transactionSchema = z.object({
   description: z.string().min(1, { message: 'Descrição é obrigatória.' }),
@@ -71,14 +72,23 @@ const transactionSchema = z.object({
 });
 
 export default function DashboardShell() {
-  const { transactions, loading, addTransaction, updateTransaction, deleteTransaction } = useTransactions();
+  const { transactions, loading: transactionsLoading, addTransaction, updateTransaction, deleteTransaction } = useTransactions();
+  const { categories, loading: categoriesLoading } = useCategories();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [filters, setFilters] = useState({ type: 'all' as 'all' | 'income' | 'expense', categories: categories.map(c => c.value) });
+  const [filters, setFilters] = useState({ type: 'all' as 'all' | 'income' | 'expense', categories: [] as string[] });
   const { toast } = useToast();
   const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+
+  const loading = transactionsLoading || categoriesLoading;
+
+  useEffect(() => {
+    if (!categoriesLoading) {
+      setFilters(prev => ({ ...prev, categories: categories.map(c => c.id) }));
+    }
+  }, [categories, categoriesLoading]);
 
   const form = useForm<z.infer<typeof transactionSchema>>({
     resolver: zodResolver(transactionSchema),
@@ -204,7 +214,7 @@ export default function DashboardShell() {
     const expenseByCategory = filteredTransactions
       .filter(t => t.type === 'expense')
       .reduce((acc, t) => {
-        const categoryLabel = categories.find(c => c.value === t.category)?.label || 'Outros';
+        const categoryLabel = categories.find(c => c.id === t.category)?.name || 'Outros';
         if (!acc[categoryLabel]) {
           acc[categoryLabel] = 0;
         }
@@ -213,14 +223,14 @@ export default function DashboardShell() {
       }, {} as Record<string, number>);
   
     return Object.entries(expenseByCategory).map(([name, total]) => ({ name, total }));
-  }, [filteredTransactions]);
+  }, [filteredTransactions, categories]);
   
 
   const handleExport = () => {
     const csvContent = "data:text/csv;charset=utf-8," 
       + ["ID", "Descrição", "Valor", "Tipo", "Categoria", "Data"].join(",") + "\n"
       + filteredTransactions.map(t => 
-          [t.id, `"${t.description}"`, t.amount, t.type, t.category, new Date(t.date).toLocaleDateString('pt-BR')].join(',')
+          [t.id, `"${t.description}"`, t.amount, t.type, categories.find(c => c.id === t.category)?.name || t.category, new Date(t.date).toLocaleDateString('pt-BR')].join(',')
         ).join("\n");
     
     const encodedUri = encodeURI(csvContent);
@@ -234,11 +244,11 @@ export default function DashboardShell() {
   };
 
 
-  const handleCategoryFilterChange = (categoryValue: string, checked: boolean) => {
+  const handleCategoryFilterChange = (categoryId: string, checked: boolean) => {
     setFilters(prev => {
       const newCategories = checked 
-        ? [...prev.categories, categoryValue]
-        : prev.categories.filter(c => c !== categoryValue);
+        ? [...prev.categories, categoryId]
+        : prev.categories.filter(c => c !== categoryId);
       return { ...prev, categories: newCategories };
     });
   };
@@ -319,11 +329,11 @@ export default function DashboardShell() {
                   <DropdownMenuSeparator />
                   {categories.map(cat => (
                     <DropdownMenuCheckboxItem 
-                      key={cat.value}
-                      checked={filters.categories.includes(cat.value)}
-                      onCheckedChange={(checked) => handleCategoryFilterChange(cat.value, !!checked)}
+                      key={cat.id}
+                      checked={filters.categories.includes(cat.id)}
+                      onCheckedChange={(checked) => handleCategoryFilterChange(cat.id, !!checked)}
                     >
-                      {cat.label}
+                      {cat.name}
                     </DropdownMenuCheckboxItem>
                   ))}
                 </DropdownMenuContent>
@@ -360,7 +370,7 @@ export default function DashboardShell() {
                       }
                     </ResponsiveDialogDescription>
                   </ResponsiveDialogHeader>
-                  <div className="flex-1 overflow-y-auto -mr-6 pr-6">
+                  <div className="flex-1 overflow-y-auto pr-2 -mr-4">
                     <Form {...form}>
                       <form id="transaction-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                         <FormField control={form.control} name="description" render={({ field }) => (
@@ -371,7 +381,7 @@ export default function DashboardShell() {
                             </FormItem>
                           )}
                         />
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div className="grid grid-cols-2 gap-4">
                           <FormField control={form.control} name="amount" render={({ field }) => (
                               <FormItem>
                                 <FormLabel>Valor</FormLabel>
@@ -405,7 +415,7 @@ export default function DashboardShell() {
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  {categories.map(cat => <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>)}
+                                  {categories.map(cat => <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>)}
                                 </SelectContent>
                               </Select>
                               <FormMessage />
@@ -536,8 +546,8 @@ export default function DashboardShell() {
               {filteredTransactions.length > 0 ? (
                 <div className="flex flex-col gap-3">
                   {filteredTransactions.map(t => {
-                    const category = categories.find(c => c.value === t.category);
-                    const Icon = category?.icon;
+                    const category = categories.find(c => c.id === t.category);
+                    const Icon = category ? getIcon(category.icon) : null;
                     return (
                       <div key={t.id} className="rounded-lg border bg-card p-4 text-sm">
                         <div className="flex items-start justify-between gap-4">
@@ -546,7 +556,7 @@ export default function DashboardShell() {
                                 <div className="text-xs text-muted-foreground">{new Date(t.date).toLocaleDateString('pt-BR')}</div>
                                 <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
                                     {Icon && <Icon className="h-3 w-3" />}
-                                    <span>{category?.label || t.category}</span>
+                                    <span>{category?.name || t.category}</span>
                                 </div>
                             </div>
                             <div className="flex flex-col items-end gap-2 flex-shrink-0">
@@ -586,8 +596,8 @@ export default function DashboardShell() {
               </TableHeader>
               <TableBody>
                 {filteredTransactions.length > 0 ? filteredTransactions.map(t => {
-                   const category = categories.find(c => c.value === t.category);
-                   const Icon = category?.icon;
+                   const category = categories.find(c => c.id === t.category);
+                   const Icon = category ? getIcon(category.icon) : null;
                    return (
                      <TableRow key={t.id}>
                        <TableCell>
@@ -597,7 +607,7 @@ export default function DashboardShell() {
                        <TableCell>
                          <div className="flex items-center gap-2">
                            {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
-                           {category?.label || t.category}
+                           {category?.name || t.category}
                          </div>
                        </TableCell>
                        <TableCell className={`text-right font-medium ${t.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
