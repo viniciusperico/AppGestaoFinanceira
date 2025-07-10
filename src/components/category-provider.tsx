@@ -17,7 +17,7 @@ interface CategoryContextType {
 }
 
 const CategoryContext = createContext<CategoryContextType>({
-  categories: [],
+  categories: defaultCategories,
   loading: true,
   addCategory: async () => {},
   updateCategory: async () => {},
@@ -37,11 +37,13 @@ export function CategoryProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    setLoading(true);
     const q = query(collection(db, 'users', user.uid, 'categories'), orderBy('name'));
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const userCategories: Category[] = [];
+       if (querySnapshot.empty) {
+        setLoading(false);
+      }
       querySnapshot.forEach((doc) => {
         userCategories.push({ id: doc.id, ...doc.data(), isCustom: true } as Category);
       });

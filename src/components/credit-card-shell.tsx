@@ -24,6 +24,7 @@ import { PlusCircle, Pencil, Trash2, CreditCard as CreditCardIcon } from 'lucide
 import { useCreditCards } from '@/components/credit-card-provider';
 import type { CreditCard, CardBrand } from '@/types';
 import { ResponsiveDialog, ResponsiveDialogTrigger, ResponsiveDialogContent, ResponsiveDialogHeader, ResponsiveDialogTitle, ResponsiveDialogDescription, ResponsiveDialogFooter } from './ui/responsive-dialog';
+import { Skeleton } from './ui/skeleton';
 
 const cardBrands: { value: CardBrand, label: string }[] = [
     { value: 'visa', label: 'Visa' },
@@ -112,14 +113,6 @@ export default function CreditCardShell() {
     return cardBrands.find(b => b.value === brandValue)?.label || 'Outra';
   };
 
-  if (loading) {
-    return (
-      <div className="flex h-full flex-1 items-center justify-center">
-        <div className="h-16 w-16 animate-spin rounded-full border-4 border-solid border-primary border-t-transparent"></div>
-      </div>
-    );
-  }
-
   return (
     <>
       <div className="flex items-center justify-between">
@@ -204,7 +197,13 @@ export default function CreditCardShell() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {creditCards.length > 0 ? (
+        {loading ? (
+          <>
+            <Card><CardHeader><Skeleton className="h-5 w-2/3" /><Skeleton className="h-4 w-1/3 mt-2" /></CardHeader><CardContent><Skeleton className="h-4 w-full" /></CardContent><CardFooter><Skeleton className="h-8 w-16 ml-auto" /></CardFooter></Card>
+            <Card><CardHeader><Skeleton className="h-5 w-2/3" /><Skeleton className="h-4 w-1/3 mt-2" /></CardHeader><CardContent><Skeleton className="h-4 w-full" /></CardContent><CardFooter><Skeleton className="h-8 w-16 ml-auto" /></CardFooter></Card>
+            <Card><CardHeader><Skeleton className="h-5 w-2/3" /><Skeleton className="h-4 w-1/3 mt-2" /></CardHeader><CardContent><Skeleton className="h-4 w-full" /></CardContent><CardFooter><Skeleton className="h-8 w-16 ml-auto" /></CardFooter></Card>
+          </>
+        ) : creditCards.length > 0 ? (
           creditCards.map(card => (
             <Card key={card.id}>
               <CardHeader className="flex flex-row items-start justify-between">

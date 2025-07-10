@@ -49,11 +49,13 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    setLoading(true);
     const q = query(collection(db, 'users', user.uid, 'transactions'), orderBy('date', 'desc'));
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const transactionsData: Transaction[] = [];
+      if (querySnapshot.empty) {
+        setLoading(false);
+      }
       querySnapshot.forEach((doc) => {
         const data = doc.data();
         transactionsData.push({

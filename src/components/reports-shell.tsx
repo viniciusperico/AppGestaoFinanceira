@@ -11,6 +11,7 @@ import { Button } from './ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useCategories } from './category-provider';
+import { Skeleton } from './ui/skeleton';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#d0ed57'];
 
@@ -85,14 +86,6 @@ export default function ReportsShell() {
 
     return Object.entries(expenseByCategory).map(([name, value]) => ({ name, value }));
   }, [transactions, loading, currentMonth, categories]);
-  
-  if (loading) {
-    return (
-        <div className="flex h-full items-center justify-center">
-            <div className="h-16 w-16 animate-spin rounded-full border-4 border-solid border-primary border-t-transparent"></div>
-        </div>
-    );
-  }
 
   return (
     <div className="grid gap-8">
@@ -113,7 +106,9 @@ export default function ReportsShell() {
           <CardDescription>Distribuição das suas despesas para o mês selecionado.</CardDescription>
         </CardHeader>
         <CardContent className="flex items-center justify-center">
-          {expenseByCategoryData.length > 0 ? (
+          {loading ? (
+             <Skeleton className="h-[300px] sm:h-[350px] w-full max-w-md rounded-full" />
+          ) : expenseByCategoryData.length > 0 ? (
             <div className="h-[300px] sm:h-[350px] w-full max-w-md">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -158,23 +153,27 @@ export default function ReportsShell() {
         </CardHeader>
         <CardContent>
           <div className="h-[300px] sm:h-[350px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={monthlyData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                <XAxis dataKey="month" />
-                <YAxis tickFormatter={(value) => `R$${(value/1000)}k`} />
-                <Tooltip 
-                  formatter={(value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                  contentStyle={{
-                    background: 'hsl(var(--background))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: 'var(--radius)',
-                  }}
-                />
-                <Legend />
-                <Line type="monotone" dataKey="Receita" stroke="hsl(var(--primary))" activeDot={{ r: 8 }} />
-                <Line type="monotone" dataKey="Despesa" stroke="hsl(var(--destructive))" />
-              </LineChart>
-            </ResponsiveContainer>
+            {loading ? (
+                <Skeleton className="h-full w-full" />
+            ): (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={monthlyData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                  <XAxis dataKey="month" />
+                  <YAxis tickFormatter={(value) => `R$${(value/1000)}k`} />
+                  <Tooltip 
+                    formatter={(value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    contentStyle={{
+                      background: 'hsl(var(--background))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: 'var(--radius)',
+                    }}
+                  />
+                  <Legend />
+                  <Line type="monotone" dataKey="Receita" stroke="hsl(var(--primary))" activeDot={{ r: 8 }} />
+                  <Line type="monotone" dataKey="Despesa" stroke="hsl(var(--destructive))" />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </CardContent>
       </Card>

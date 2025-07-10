@@ -43,6 +43,7 @@ import { useTransactions } from '@/components/transaction-provider';
 import { ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogDescription, ResponsiveDialogFooter, ResponsiveDialogHeader, ResponsiveDialogTitle, ResponsiveDialogTrigger } from './ui/responsive-dialog';
 import { useCategories } from './category-provider';
 import { getIcon } from '@/lib/icon-map';
+import { Skeleton } from './ui/skeleton';
 
 const transactionSchema = z.object({
   description: z.string().min(1, { message: 'Descrição é obrigatória.' }),
@@ -85,7 +86,7 @@ export default function DashboardShell() {
   const loading = transactionsLoading || categoriesLoading;
 
   useEffect(() => {
-    if (!categoriesLoading) {
+    if (!categoriesLoading && categories.length > 0) {
       setFilters(prev => ({ ...prev, categories: categories.map(c => c.id) }));
     }
   }, [categories, categoriesLoading]);
@@ -196,7 +197,7 @@ export default function DashboardShell() {
   const filteredTransactions = useMemo(() => {
     return monthlyTransactions.filter(t => {
       const typeMatch = filters.type === 'all' || t.type === filters.type;
-      const categoryMatch = filters.categories.includes(t.category);
+      const categoryMatch = filters.categories.length === 0 || filters.categories.includes(t.category);
       return typeMatch && categoryMatch;
     });
   }, [monthlyTransactions, filters]);
@@ -253,14 +254,6 @@ export default function DashboardShell() {
     });
   };
 
-  if (loading) {
-    return (
-      <div className="flex h-full flex-1 items-center justify-center">
-        <div className="h-16 w-16 animate-spin rounded-full border-4 border-solid border-primary border-t-transparent"></div>
-      </div>
-    )
-  }
-
   return (
     <>
       <div className="flex items-center gap-4">
@@ -282,7 +275,7 @@ export default function DashboardShell() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalIncome.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</div>
+            {loading ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold">{totalIncome.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</div>}
           </CardContent>
         </Card>
         <Card>
@@ -291,7 +284,7 @@ export default function DashboardShell() {
             <TrendingDown className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{Math.abs(totalExpense).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</div>
+            {loading ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold">{Math.abs(totalExpense).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</div>}
           </CardContent>
         </Card>
         <Card>
@@ -300,7 +293,7 @@ export default function DashboardShell() {
             <Landmark className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{balance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</div>
+            {loading ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold">{balance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</div>}
           </CardContent>
         </Card>
       </div>
@@ -543,7 +536,13 @@ export default function DashboardShell() {
           </CardHeader>
           <CardContent>
             <div className="md:hidden">
-              {filteredTransactions.length > 0 ? (
+              {loading ? (
+                 <div className="flex flex-col gap-3">
+                   <Skeleton className="h-24 w-full" />
+                   <Skeleton className="h-24 w-full" />
+                   <Skeleton className="h-24 w-full" />
+                 </div>
+              ) : filteredTransactions.length > 0 ? (
                 <div className="flex flex-col gap-3">
                   {filteredTransactions.map(t => {
                     const category = categories.find(c => c.id === t.category);
@@ -595,7 +594,19 @@ export default function DashboardShell() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredTransactions.length > 0 ? filteredTransactions.map(t => {
+                {loading ? (
+                    <>
+                        <TableRow>
+                            <TableCell colSpan={4}><Skeleton className="h-5 w-full" /></TableCell>
+                        </TableRow>
+                        <TableRow>
+                            <TableCell colSpan={4}><Skeleton className="h-5 w-full" /></TableCell>
+                        </TableRow>
+                        <TableRow>
+                            <TableCell colSpan={4}><Skeleton className="h-5 w-full" /></TableCell>
+                        </TableRow>
+                    </>
+                ) : filteredTransactions.length > 0 ? filteredTransactions.map(t => {
                    const category = categories.find(c => c.id === t.category);
                    const Icon = category ? getIcon(category.icon) : null;
                    return (
@@ -646,6 +657,11 @@ export default function DashboardShell() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {loading ? (
+              <div className="h-[250px] md:h-[300px] flex items-center justify-center">
+                  <Skeleton className="h-full w-full" />
+              </div>
+            ) : (
             <div className="h-[250px] md:h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <RechartsBarChart data={chartData} layout="vertical" margin={{ left: 10, right: 20 }}>
@@ -664,6 +680,7 @@ export default function DashboardShell() {
                 </RechartsBarChart>
               </ResponsiveContainer>
             </div>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -25,6 +25,7 @@ import { useCategories } from '@/components/category-provider';
 import type { Category } from '@/types';
 import { ResponsiveDialog, ResponsiveDialogTrigger, ResponsiveDialogContent, ResponsiveDialogHeader, ResponsiveDialogTitle, ResponsiveDialogDescription, ResponsiveDialogFooter } from './ui/responsive-dialog';
 import { availableIcons, getIcon, IconName } from '@/lib/icon-map';
+import { Skeleton } from './ui/skeleton';
 
 const categorySchema = z.object({
   name: z.string().min(1, { message: 'O nome da categoria é obrigatório.' }),
@@ -88,14 +89,6 @@ export default function SettingsShell() {
     }
     handleDialogChange(false);
   };
-  
-  if (loading) {
-    return (
-      <div className="flex h-full flex-1 items-center justify-center">
-        <div className="h-16 w-16 animate-spin rounded-full border-4 border-solid border-primary border-t-transparent"></div>
-      </div>
-    );
-  }
 
   return (
     <>
@@ -172,7 +165,21 @@ export default function SettingsShell() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {categories.map(cat => {
+        {loading ? (
+            <>
+              {[...Array(8)].map((_, i) => (
+                <Card key={i}>
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <Skeleton className="h-5 w-2/3" />
+                    <Skeleton className="h-5 w-5 rounded-sm" />
+                  </CardHeader>
+                  <CardContent>
+                    <Skeleton className="h-4 w-1/3" />
+                  </CardContent>
+                </Card>
+              ))}
+            </>
+        ) : categories.map(cat => {
             const Icon = getIcon(cat.icon);
             return (
                 <Card key={cat.id}>
