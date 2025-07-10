@@ -48,9 +48,15 @@ const ResponsiveDialogContent = React.forwardRef<
 >(({ className, children, ...props }, ref) => {
   const isMobile = useIsMobile()
 
+  const handleOpenAutoFocus = (event: Event) => {
+    if (isMobile) {
+      event.preventDefault()
+    }
+  }
+
   if (isMobile) {
     return (
-      <SheetContent ref={ref} side="bottom" className={cn("max-h-[90vh] flex flex-col p-4", className)} {...props}>
+      <SheetContent ref={ref} side="bottom" className={cn("max-h-[90vh] flex flex-col p-4", className)} onOpenAutoFocus={handleOpenAutoFocus} {...props}>
         {children}
       </SheetContent>
     )
