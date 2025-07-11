@@ -12,6 +12,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
+/**
+ * `ThemeToggle` é um componente que permite ao usuário alternar entre
+ * os temas claro, escuro e de sistema. Ele usa o hook `useTheme` para gerenciar o estado.
+ *
+ * @returns {JSX.Element} O componente de menu suspenso para alternância de tema.
+ */
 export function ThemeToggle() {
   const { setTheme } = useTheme()
 

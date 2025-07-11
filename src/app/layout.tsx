@@ -7,17 +7,34 @@ import { TransactionProvider } from '@/components/transaction-provider';
 import { CreditCardProvider } from '@/components/credit-card-provider';
 import { ThemeProvider } from '@/components/theme-provider';
 import { CategoryProvider } from '@/components/category-provider';
+import { FutureExpenseProvider } from '@/components/future-expense-provider';
 
+/**
+ * Metadados para a aplicação.
+ * @see https://nextjs.org/docs/app/building-your-application/optimizing/metadata
+ */
 export const metadata: Metadata = {
   title: 'Controle de Gastos Simples',
   description: 'Uma forma simples de controlar seus gastos.',
   manifest: '/manifest.json',
 };
 
+/**
+ * Configuração da viewport para a aplicação.
+ * @see https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ */
 export const viewport: Viewport = {
   themeColor: '#09090b',
 };
 
+/**
+ * Layout raiz da aplicação.
+ * Envolve todas as páginas com os provedores de contexto necessários.
+ *
+ * @param {object} props - As props do componente.
+ * @param {React.ReactNode} props.children - Os componentes filhos a serem renderizados dentro do layout.
+ * @returns {JSX.Element} O componente do layout raiz.
+ */
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -41,9 +58,11 @@ export default function RootLayout({
             <CategoryProvider>
               <TransactionProvider>
                 <CreditCardProvider>
-                  <SidebarProvider>
-                    {children}
-                  </SidebarProvider>
+                  <FutureExpenseProvider>
+                    <SidebarProvider>
+                      {children}
+                    </SidebarProvider>
+                  </FutureExpenseProvider>
                 </CreditCardProvider>
               </TransactionProvider>
             </CategoryProvider>

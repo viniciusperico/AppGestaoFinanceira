@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState } from 'react';
@@ -27,11 +26,20 @@ import { ResponsiveDialog, ResponsiveDialogTrigger, ResponsiveDialogContent, Res
 import { availableIcons, getIcon, IconName } from '@/lib/icon-map';
 import { Skeleton } from './ui/skeleton';
 
+/**
+ * Schema Zod para validar o formulário de categoria.
+ */
 const categorySchema = z.object({
   name: z.string().min(1, { message: 'O nome da categoria é obrigatório.' }),
   icon: z.string().min(1, { message: 'Por favor, selecione um ícone.' }),
 });
 
+/**
+ * `SettingsShell` é o componente principal para a página de configurações.
+ * Permite que os usuários gerenciem suas categorias de gastos personalizadas.
+ *
+ * @returns {JSX.Element} O componente do shell de configurações.
+ */
 export default function SettingsShell() {
   const { categories, loading, addCategory, updateCategory, deleteCategory } = useCategories();
   const [isDialogOpen, setIsDialogOpen] = useState(false);

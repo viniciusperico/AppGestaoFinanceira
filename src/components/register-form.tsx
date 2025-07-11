@@ -13,17 +13,28 @@ import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { useAuth } from './auth-provider';
 
+/**
+ * Schema Zod para validar o formulário de registro.
+ */
 const formSchema = z.object({
   email: z.string().email({ message: 'Por favor, insira um email válido.' }),
   password: z.string().min(6, { message: 'A senha deve ter pelo menos 6 caracteres.' }),
 });
 
+/**
+ * `RegisterForm` é um componente que fornece uma interface de usuário para criar uma nova conta.
+ * Ele lida com a validação do formulário, submissão e exibe erros de registro.
+ * Também redireciona o usuário para o dashboard após um registro bem-sucedido.
+ *
+ * @returns {JSX.Element} O componente de formulário de registro.
+ */
 export default function RegisterForm() {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const { register, user } = useAuth();
 
+  // Redireciona para o dashboard se o usuário já estiver logado.
   useEffect(() => {
     if (user) {
       router.push('/');
@@ -46,6 +57,7 @@ export default function RegisterForm() {
       router.push('/');
     } catch (error: any) {
       let description = 'Ocorreu um erro ao tentar se registrar.';
+       // Fornece mensagens de erro amigáveis com base nos códigos de erro do Firebase.
        if (error && typeof error === 'object' && 'code' in error) {
         switch (error.code) {
           case 'auth/email-already-in-use':
@@ -75,7 +87,7 @@ export default function RegisterForm() {
 
   return (
     <Card className="border-0 shadow-none">
-      <CardHeader>
+      <CardHeader className="text-center">
         <CardTitle className="text-3xl">Crie sua conta</CardTitle>
         <CardDescription>É rápido e fácil. Comece agora a organizar suas finanças.</CardDescription>
       </CardHeader>

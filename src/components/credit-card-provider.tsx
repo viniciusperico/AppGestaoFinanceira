@@ -7,11 +7,19 @@ import { useAuth } from './auth-provider';
 import type { CreditCard } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 
+/**
+ * A forma do contexto de cartão de crédito.
+ */
 interface CreditCardContextType {
+  /** Um array dos cartões de crédito do usuário. */
   creditCards: CreditCard[];
+  /** Um booleano indicando se os cartões de crédito estão sendo carregados. */
   loading: boolean;
+  /** Função para adicionar um novo cartão de crédito. */
   addCreditCard: (values: Omit<CreditCard, 'id'>) => void;
+  /** Função para atualizar um cartão de crédito existente. */
   updateCreditCard: (id: string, values: Omit<CreditCard, 'id'>) => void;
+  /** Função para deletar um cartão de crédito. */
   deleteCreditCard: (id: string) => void;
 }
 
@@ -23,6 +31,15 @@ const CreditCardContext = createContext<CreditCardContextType>({
   deleteCreditCard: () => {},
 });
 
+/**
+ * `CreditCardProvider` é um componente que fornece dados de cartão de crédito e funções de gerenciamento
+ * para seus filhos. Ele busca os cartões de crédito do usuário no Firestore e fornece
+ * métodos para operações CRUD.
+ *
+ * @param {object} props - As props do componente.
+ * @param {React.ReactNode} props.children - Os componentes filhos que terão acesso ao contexto.
+ * @returns {JSX.Element} O componente provedor de cartão de crédito.
+ */
 export function CreditCardProvider({ children }: { children: React.ReactNode }) {
   const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
   const [loading, setLoading] = useState(true);
@@ -106,4 +123,9 @@ export function CreditCardProvider({ children }: { children: React.ReactNode }) 
   );
 }
 
+/**
+ * Hook personalizado para acessar o contexto de cartão de crédito.
+ *
+ * @returns {CreditCardContextType} O valor do contexto de cartão de crédito.
+ */
 export const useCreditCards = () => useContext(CreditCardContext);

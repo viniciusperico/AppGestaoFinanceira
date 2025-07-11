@@ -16,10 +16,18 @@ import { useEffect } from 'react';
 import { SidebarTrigger } from './ui/sidebar';
 import { ThemeToggle } from './theme-toggle';
 
+/**
+ * `Header` é o principal componente de cabeçalho da aplicação, exibido em páginas autenticadas.
+ * Contém o gatilho da barra lateral para dispositivos móveis, o alternador de tema e um menu de usuário
+ * com opções para configurações e logout. Também lida com o redirecionamento de usuários não autenticados.
+ *
+ * @returns {JSX.Element | null} O componente de cabeçalho, ou nulo se o usuário não estiver autenticado.
+ */
 export default function Header() {
   const router = useRouter();
   const { user, logout, loading } = useAuth();
 
+  // Redireciona para a página de login se o usuário não estiver autenticado após o carregamento.
   useEffect(() => {
     if (!loading && !user) {
       router.push('/login');
@@ -28,10 +36,11 @@ export default function Header() {
 
 
   const handleLogout = async () => {
-    logout();
+    await logout();
     router.push('/login');
   };
 
+  // Não renderiza o cabeçalho se não houver usuário.
   if (!user) {
     return null;
   }

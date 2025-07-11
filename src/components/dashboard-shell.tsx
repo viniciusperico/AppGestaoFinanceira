@@ -8,13 +8,14 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { File, Filter, Landmark, ListFilter, PlusCircle, TrendingDown, TrendingUp, Pencil, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { File, Filter, Landmark, ListFilter, PlusCircle, TrendingUp, Pencil, Trash2, ChevronLeft, ChevronRight, CreditCard as CreditCardIcon, Wallet } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,16 +45,40 @@ import { ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogDescription,
 import { useCategories } from './category-provider';
 import { getIcon } from '@/lib/icon-map';
 import { Skeleton } from './ui/skeleton';
+import { useCreditCards } from './credit-card-provider';
+import type { Transaction } from '@/types';
 
+/**
+ * Schema Zod para validar o formulário de transação.
+ * Inclui validação condicional para métodos de pagamento e despesas recorrentes.
+ */
 const transactionSchema = z.object({
   description: z.string().min(1, { message: 'Descrição é obrigatória.' }),
   amount: z.coerce.number().positive({ message: 'O valor deve ser positivo.' }),
   type: z.enum(['income', 'expense']),
   category: z.string().min(1, { message: 'Categoria é obrigatória.' }),
   date: z.date(),
+  paymentMethod: z.enum(['cash', 'creditCard']).optional(),
+  creditCardId: z.string().optional(),
   installments: z.coerce.number().int().min(1).optional(),
   isRecurring: z.boolean().default(false),
   recurringEndDate: z.date().optional(),
+}).refine(data => {
+    if (data.type === 'expense' && !data.paymentMethod) {
+        return false;
+    }
+    return true;
+}, {
+    message: "O método de pagamento é obrigatório para despesas.",
+    path: ["paymentMethod"],
+}).refine(data => {
+    if (data.paymentMethod === 'creditCard' && !data.creditCardId) {
+        return false;
+    }
+    return true;
+}, {
+    message: "Por favor, selecione um cartão de crédito.",
+    path: ["creditCardId"],
 }).refine(data => {
   if (data.type === 'expense' && data.isRecurring && !data.recurringEndDate) {
       return false;
@@ -72,18 +97,46 @@ const transactionSchema = z.object({
   path: ["recurringEndDate"],
 });
 
-export default function DashboardShell() {
-  const { transactions, loading: transactionsLoading, addTransaction, updateTransaction, deleteTransaction } = useTransactions();
+/**
+ * Props para o componente `DashboardShell`.
+ */
+interface DashboardShellProps {
+    /**
+     * Se o diálogo de transação deve estar aberto por padrão.
+     * @default false
+     */
+    defaultOpen?: boolean;
+    /**
+     * Valores padrão para preencher o formulário de transação.
+     * Útil para funcionalidades como "Marcar como Paga".
+     */
+    transactionDefaults?: Partial<z.infer<typeof transactionSchema>>;
+}
+
+/**
+ * `DashboardShell` é o componente principal do dashboard da aplicação.
+ * Exibe cartões de resumo, uma lista de transações e um gráfico de despesas por categoria.
+ * Também contém o formulário para adicionar e editar transações.
+ *
+ * @param {DashboardShellProps} props - As props do componente.
+ * @returns {JSX.Element} O componente do shell do dashboard.
+ */
+export default function DashboardShell({ defaultOpen = false, transactionDefaults = {} }: DashboardShellProps) {
+  const { transactions, loading: transactionsLoading, addTransaction, updateTransaction, deleteTransaction, updateTransactionGroup } = useTransactions();
   const { categories, loading: categoriesLoading } = useCategories();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { creditCards, loading: creditCardsLoading } = useCreditCards();
+  const [isDialogOpen, setIsDialogOpen] = useState(defaultOpen);
   const [filters, setFilters] = useState({ type: 'all' as 'all' | 'income' | 'expense', categories: [] as string[] });
   const { toast } = useToast();
-  const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isGroupEditDialogOpen, setIsGroupEditDialogOpen] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
-  const loading = transactionsLoading || categoriesLoading;
+  const loading = transactionsLoading || categoriesLoading || creditCardsLoading;
+  
+  const editingTransactionId = editingTransaction?.id || null;
 
   useEffect(() => {
     if (!categoriesLoading && categories.length > 0) {
@@ -99,20 +152,33 @@ export default function DashboardShell() {
       type: 'expense',
       category: '',
       date: new Date(),
+      paymentMethod: 'cash',
       installments: 1,
       isRecurring: false,
+      ...transactionDefaults
     },
   });
 
   const type = form.watch('type');
+  const paymentMethod = form.watch('paymentMethod');
   const isRecurring = form.watch('isRecurring');
 
   useEffect(() => {
     if (type === 'income') {
+      form.setValue('paymentMethod', undefined);
+      form.setValue('creditCardId', undefined);
       form.setValue('installments', 1);
       form.setValue('isRecurring', false);
+    } else {
+        form.setValue('paymentMethod', 'cash');
     }
   }, [type, form]);
+
+  useEffect(() => {
+    if (paymentMethod !== 'creditCard') {
+        form.setValue('installments', 1);
+    }
+  }, [paymentMethod, form]);
 
   useEffect(() => {
     if (isRecurring) {
@@ -130,36 +196,37 @@ export default function DashboardShell() {
 
   const handleDialogChange = (open: boolean) => {
     if (!open) {
-      setEditingTransactionId(null);
+      setEditingTransaction(null);
       form.reset({
         description: '',
         amount: 0,
         type: 'expense',
         category: '',
         date: new Date(),
+        paymentMethod: 'cash',
         installments: 1,
         isRecurring: false,
         recurringEndDate: undefined,
+        creditCardId: undefined,
       });
     }
     setIsDialogOpen(open);
   };
   
-  const handleEdit = (id: string) => {
-    const transaction = transactions.find(t => t.id === id);
-    if (transaction) {
-      setEditingTransactionId(id);
-      form.reset({
-        description: transaction.description,
-        amount: Math.abs(transaction.amount),
-        type: transaction.type,
-        category: transaction.category,
-        date: new Date(transaction.date),
-        installments: 1, 
-        isRecurring: false,
-      });
-      setIsDialogOpen(true);
-    }
+  const handleEdit = (transaction: Transaction) => {
+    setEditingTransaction(transaction);
+    form.reset({
+      description: transaction.description,
+      amount: Math.abs(transaction.amount),
+      type: transaction.type,
+      category: transaction.category,
+      date: new Date(transaction.date),
+      paymentMethod: transaction.paymentMethod,
+      creditCardId: transaction.creditCardId,
+      installments: 1, 
+      isRecurring: false,
+    });
+    setIsDialogOpen(true);
   };
 
   const handleDeleteClick = (id: string) => {
@@ -177,12 +244,27 @@ export default function DashboardShell() {
 
 
   const onSubmit = (values: z.infer<typeof transactionSchema>) => {
-    if (editingTransactionId) {
-      updateTransaction(editingTransactionId, values);
+    if (editingTransaction?.groupId) {
+        setIsGroupEditDialogOpen(true);
+    } else if (editingTransactionId) {
+        updateTransaction(editingTransactionId, values);
+        handleDialogChange(false);
     } else {
       addTransaction(values);
+      handleDialogChange(false);
     }
-    
+  };
+
+  const handleConfirmGroupEdit = async (updateAll: boolean) => {
+    const values = form.getValues();
+    if (!editingTransaction) return;
+
+    if (updateAll && editingTransaction.groupId) {
+        await updateTransactionGroup(editingTransaction.groupId, values);
+    } else {
+        await updateTransaction(editingTransaction.id, { ...values, groupId: editingTransaction.groupId });
+    }
+    setIsGroupEditDialogOpen(false);
     handleDialogChange(false);
   };
   
@@ -202,14 +284,26 @@ export default function DashboardShell() {
     });
   }, [monthlyTransactions, filters]);
 
-  const { totalIncome, totalExpense, balance } = useMemo(() => {
+  const { totalIncome, cardExpense, cashExpense } = useMemo(() => {
     return monthlyTransactions.reduce((acc, t) => {
-      if (t.amount > 0) acc.totalIncome += t.amount;
-      else acc.totalExpense += t.amount;
-      acc.balance = acc.totalIncome + acc.totalExpense;
-      return acc;
-    }, { totalIncome: 0, totalExpense: 0, balance: 0 });
+        if (t.type === 'income') {
+            acc.totalIncome += t.amount;
+        } else { // expense
+            if (t.paymentMethod === 'creditCard') {
+                acc.cardExpense += t.amount;
+            } else { // cash or undefined (legacy)
+                acc.cashExpense += t.amount;
+            }
+        }
+        return acc;
+    }, { totalIncome: 0, cardExpense: 0, cashExpense: 0 });
   }, [monthlyTransactions]);
+
+  const finalTotals = useMemo(() => {
+      const totalExpense = cardExpense + cashExpense;
+      const balance = totalIncome + totalExpense;
+      return { totalIncome, totalExpense, balance, cardExpense, cashExpense };
+  }, [totalIncome, cardExpense, cashExpense]);
 
   const chartData = useMemo(() => {
     const expenseByCategory = filteredTransactions
@@ -254,6 +348,20 @@ export default function DashboardShell() {
     });
   };
 
+  const handleSelectAllCategories = () => {
+    setFilters(prev => ({
+      ...prev,
+      categories: categories.map(c => c.id)
+    }));
+  };
+
+  const handleClearAllCategories = () => {
+    setFilters(prev => ({
+      ...prev,
+      categories: []
+    }));
+  };
+
   return (
     <>
       <div className="flex items-center gap-4">
@@ -268,23 +376,32 @@ export default function DashboardShell() {
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Receita do Mês</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {loading ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold">{totalIncome.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</div>}
+            {loading ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold">{finalTotals.totalIncome.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</div>}
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Despesa do Mês</CardTitle>
-            <TrendingDown className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Despesa com Cartão</CardTitle>
+            <CreditCardIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {loading ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold">{Math.abs(totalExpense).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</div>}
+            {loading ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold">{Math.abs(finalTotals.cardExpense).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</div>}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Despesa com Dinheiro</CardTitle>
+            <Wallet className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {loading ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold">{Math.abs(finalTotals.cashExpense).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</div>}
           </CardContent>
         </Card>
         <Card>
@@ -293,7 +410,7 @@ export default function DashboardShell() {
             <Landmark className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {loading ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold">{balance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</div>}
+            {loading ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold">{finalTotals.balance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</div>}
           </CardContent>
         </Card>
       </div>
@@ -319,6 +436,13 @@ export default function DashboardShell() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel>Filtrar por Categoria</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={handleSelectAllCategories} className="cursor-pointer">
+                    Selecionar Todas
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={handleClearAllCategories} className="cursor-pointer">
+                    Limpar Seleção
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   {categories.map(cat => (
                     <DropdownMenuCheckboxItem 
@@ -363,13 +487,13 @@ export default function DashboardShell() {
                       }
                     </ResponsiveDialogDescription>
                   </ResponsiveDialogHeader>
-                  <div className="flex-1 overflow-y-auto pr-2 -mr-4">
+                  <div className="flex-1 overflow-y-auto pr-4">
                     <Form {...form}>
                       <form id="transaction-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                         <FormField control={form.control} name="description" render={({ field }) => (
                             <FormItem>
                               <FormLabel>Descrição</FormLabel>
-                              <FormControl><Input placeholder="Ex: Compras no supermercado" {...field} /></FormControl>
+                              <FormControl><Input placeholder="Ex: Compras no supermercado" {...field} disabled={!!editingTransaction?.groupId} /></FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -378,7 +502,7 @@ export default function DashboardShell() {
                           <FormField control={form.control} name="amount" render={({ field }) => (
                               <FormItem>
                                 <FormLabel>Valor</FormLabel>
-                                <FormControl><Input type="number" placeholder="0,00" {...field} /></FormControl>
+                                <FormControl><Input type="number" placeholder="0,00" {...field} disabled={!!editingTransaction?.groupId} /></FormControl>
                                 <FormMessage />
                               </FormItem>
                             )}
@@ -386,7 +510,7 @@ export default function DashboardShell() {
                           <FormField control={form.control} name="type" render={({ field }) => (
                               <FormItem>
                                 <FormLabel>Tipo</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!editingTransaction?.groupId}>
                                   <FormControl><SelectTrigger><SelectValue placeholder="Selecione o tipo" /></SelectTrigger></FormControl>
                                   <SelectContent>
                                     <SelectItem value="expense">Despesa</SelectItem>
@@ -415,20 +539,51 @@ export default function DashboardShell() {
                             </FormItem>
                           )}
                         />
+                         {type === 'expense' && (
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField control={form.control} name="paymentMethod" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Método</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <FormControl><SelectTrigger><SelectValue placeholder="Selecione o método" /></SelectTrigger></FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="cash">Dinheiro</SelectItem>
+                                                <SelectItem value="creditCard">Cartão de Crédito</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                {paymentMethod === 'creditCard' && (
+                                    <FormField control={form.control} name="creditCardId" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Cartão</FormLabel>
+                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                <FormControl><SelectTrigger><SelectValue placeholder="Selecione o cartão" /></SelectTrigger></FormControl>
+                                                <SelectContent>
+                                                    {creditCards.map(card => <SelectItem key={card.id} value={card.id}>{card.name}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                )}
+                            </div>
+                        )}
                         <FormField control={form.control} name="date" render={({ field }) => (
                             <FormItem className="flex flex-col">
                               <FormLabel>Data da Transação</FormLabel>
                               <Popover>
                                 <PopoverTrigger asChild>
                                   <FormControl>
-                                    <Button variant="outline" className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}>
+                                    <Button variant="outline" className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')} disabled={!!editingTransaction?.groupId}>
                                       {field.value ? (format(field.value, 'PPP', { locale: ptBR })) : <span>Escolha uma data</span>}
                                       <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                     </Button>
                                   </FormControl>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0" align="start">
-                                  <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                  <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={!!editingTransaction?.groupId} />
                                 </PopoverContent>
                               </Popover>
                               <FormMessage />
@@ -449,6 +604,7 @@ export default function DashboardShell() {
                                         field.onChange(checked);
                                         if (checked) {
                                           form.setValue('installments', 1);
+                                          form.setValue('paymentMethod', 'cash');
                                         } else {
                                           form.setValue('recurringEndDate', undefined);
                                           form.clearErrors('recurringEndDate');
@@ -508,17 +664,19 @@ export default function DashboardShell() {
                                 )}
                               />
                             ) : (
-                              <FormField
-                                control={form.control}
-                                name="installments"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Nº de Parcelas</FormLabel>
-                                    <FormControl><Input type="number" min="1" placeholder="1" {...field} /></FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
+                                paymentMethod === 'creditCard' && (
+                                <FormField
+                                    control={form.control}
+                                    name="installments"
+                                    render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Nº de Parcelas</FormLabel>
+                                        <FormControl><Input type="number" min="1" placeholder="1" {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                    )}
+                                />
+                                )
                             )}
                           </>
                         )}
@@ -546,6 +704,7 @@ export default function DashboardShell() {
                 <div className="flex flex-col gap-3">
                   {filteredTransactions.map(t => {
                     const category = categories.find(c => c.id === t.category);
+                    const creditCard = t.creditCardId ? creditCards.find(c => c.id === t.creditCardId) : null;
                     const Icon = category ? getIcon(category.icon) : null;
                     return (
                       <div key={t.id} className="rounded-lg border bg-card p-4 text-sm">
@@ -557,13 +716,19 @@ export default function DashboardShell() {
                                     {Icon && <Icon className="h-3 w-3" />}
                                     <span>{category?.name || t.category}</span>
                                 </div>
+                                {t.paymentMethod && (
+                                    <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                                        {t.paymentMethod === 'creditCard' ? <CreditCardIcon className="h-3 w-3" /> : <Wallet className="h-3 w-3" />}
+                                        <span>{t.paymentMethod === 'creditCard' ? (creditCard?.name || 'Cartão') : 'Dinheiro'}</span>
+                                    </div>
+                                )}
                             </div>
                             <div className="flex flex-col items-end gap-2 flex-shrink-0">
                                 <div className={`font-medium ${t.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
                                   {t.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                                 </div>
                                 <div className="flex items-center gap-1">
-                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(t.id)}>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(t)}>
                                       <Pencil className="h-4 w-4" />
                                       <span className="sr-only">Editar</span>
                                   </Button>
@@ -589,6 +754,7 @@ export default function DashboardShell() {
                 <TableRow>
                   <TableHead>Descrição</TableHead>
                   <TableHead>Categoria</TableHead>
+                  <TableHead>Pagamento</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
@@ -597,17 +763,18 @@ export default function DashboardShell() {
                 {loading ? (
                     <>
                         <TableRow>
-                            <TableCell colSpan={4}><Skeleton className="h-5 w-full" /></TableCell>
+                            <TableCell colSpan={5}><Skeleton className="h-5 w-full" /></TableCell>
                         </TableRow>
                         <TableRow>
-                            <TableCell colSpan={4}><Skeleton className="h-5 w-full" /></TableCell>
+                            <TableCell colSpan={5}><Skeleton className="h-5 w-full" /></TableCell>
                         </TableRow>
                         <TableRow>
-                            <TableCell colSpan={4}><Skeleton className="h-5 w-full" /></TableCell>
+                            <TableCell colSpan={5}><Skeleton className="h-5 w-full" /></TableCell>
                         </TableRow>
                     </>
                 ) : filteredTransactions.length > 0 ? filteredTransactions.map(t => {
                    const category = categories.find(c => c.id === t.category);
+                   const creditCard = t.creditCardId ? creditCards.find(c => c.id === t.creditCardId) : null;
                    const Icon = category ? getIcon(category.icon) : null;
                    return (
                      <TableRow key={t.id}>
@@ -621,12 +788,20 @@ export default function DashboardShell() {
                            {category?.name || t.category}
                          </div>
                        </TableCell>
+                        <TableCell>
+                            {t.paymentMethod ? (
+                                <div className="flex items-center gap-2">
+                                    {t.paymentMethod === 'creditCard' ? <CreditCardIcon className="h-4 w-4 text-muted-foreground" /> : <Wallet className="h-4 w-4 text-muted-foreground" />}
+                                    {t.paymentMethod === 'creditCard' ? (creditCard?.name || 'Cartão') : 'Dinheiro'}
+                                </div>
+                            ) : null}
+                        </TableCell>
                        <TableCell className={`text-right font-medium ${t.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
                          {t.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                        </TableCell>
                        <TableCell>
                           <div className="flex items-center justify-end gap-2">
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(t.id)}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(t)}>
                               <Pencil className="h-4 w-4" />
                               <span className="sr-only">Editar</span>
                             </Button>
@@ -640,7 +815,7 @@ export default function DashboardShell() {
                    )
                 }) : (
                   <TableRow>
-                    <TableCell colSpan={4} className="h-24 text-center">
+                    <TableCell colSpan={5} className="h-24 text-center">
                       Nenhuma transação encontrada para este mês.
                     </TableCell>
                   </TableRow>
@@ -674,7 +849,7 @@ export default function DashboardShell() {
                       border: '1px solid hsl(var(--border))',
                       borderRadius: 'var(--radius)',
                     }}
-                    formatter={(value) => [value.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'}), 'Total']}
+                    formatter={(value: any) => [value.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'}), 'Total']}
                   />
                   <Bar dataKey="total" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
                 </RechartsBarChart>
@@ -695,6 +870,21 @@ export default function DashboardShell() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete}>Confirmar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isGroupEditDialogOpen} onOpenChange={setIsGroupEditDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Editar Transação em Grupo</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta transação faz parte de um grupo (recorrente ou parcelada). Como você deseja aplicar esta alteração?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:justify-between gap-2">
+            <Button variant="outline" onClick={() => handleConfirmGroupEdit(false)}>Alterar Somente Esta</Button>
+            <Button onClick={() => handleConfirmGroupEdit(true)}>Alterar Todas</Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

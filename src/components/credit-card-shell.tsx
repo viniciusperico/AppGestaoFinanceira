@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -26,6 +25,9 @@ import type { CreditCard, CardBrand } from '@/types';
 import { ResponsiveDialog, ResponsiveDialogTrigger, ResponsiveDialogContent, ResponsiveDialogHeader, ResponsiveDialogTitle, ResponsiveDialogDescription, ResponsiveDialogFooter } from './ui/responsive-dialog';
 import { Skeleton } from './ui/skeleton';
 
+/**
+ * Array de bandeiras de cartão disponíveis para o input de seleção.
+ */
 const cardBrands: { value: CardBrand, label: string }[] = [
     { value: 'visa', label: 'Visa' },
     { value: 'mastercard', label: 'Mastercard' },
@@ -35,6 +37,9 @@ const cardBrands: { value: CardBrand, label: string }[] = [
     { value: 'outra', label: 'Outra' },
 ];
 
+/**
+ * Schema Zod para validar o formulário de cartão de crédito.
+ */
 const creditCardSchema = z.object({
   name: z.string().min(1, { message: 'O nome do cartão é obrigatório.' }),
   brand: z.enum(['visa', 'mastercard', 'elo', 'amex', 'hipercard', 'outra']),
@@ -43,6 +48,12 @@ const creditCardSchema = z.object({
   dueDay: z.coerce.number().int().min(1).max(31, { message: 'Dia inválido.' }),
 });
 
+/**
+ * `CreditCardShell` é o componente principal para gerenciar cartões de crédito.
+ * Ele fornece uma UI para listar, adicionar, editar e deletar cartões de crédito.
+ *
+ * @returns {JSX.Element} O componente de gerenciamento de cartões de crédito.
+ */
 export default function CreditCardShell() {
   const { creditCards, loading, addCreditCard, updateCreditCard, deleteCreditCard } = useCreditCards();
   const [isDialogOpen, setIsDialogOpen] = useState(false);

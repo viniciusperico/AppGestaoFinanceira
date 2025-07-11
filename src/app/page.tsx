@@ -4,6 +4,12 @@ import Header from "@/components/header";
 import { Sidebar, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 
+/**
+ * Renderiza a página inicial, que é o dashboard principal da aplicação.
+ * Fornece um layout para o componente `DashboardShell`.
+ *
+ * @returns {JSX.Element} O componente da página inicial.
+ */
 export default function Home() {
   return (
     <>

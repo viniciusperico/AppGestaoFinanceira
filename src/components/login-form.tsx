@@ -13,17 +13,28 @@ import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { useAuth } from './auth-provider';
 
+/**
+ * Schema Zod para validar o formulário de login.
+ */
 const formSchema = z.object({
   email: z.string().email({ message: 'Por favor, insira um email válido.' }),
   password: z.string().min(6, { message: 'A senha deve ter pelo menos 6 caracteres.' }),
 });
 
+/**
+ * `LoginForm` é um componente que fornece uma interface de usuário para login.
+ * Ele lida com a validação do formulário, submissão e exibe erros de autenticação.
+ * Também redireciona o usuário para o dashboard após um login bem-sucedido.
+ *
+ * @returns {JSX.Element} O componente de formulário de login.
+ */
 export default function LoginForm() {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const { login, user } = useAuth();
 
+  // Redireciona para o dashboard se o usuário já estiver logado.
   useEffect(() => {
     if (user) {
       router.push('/');
@@ -45,6 +56,7 @@ export default function LoginForm() {
       router.push('/');
     } catch (error: any) {
       let description = 'Ocorreu um erro ao tentar entrar.';
+      // Fornece mensagens de erro amigáveis com base nos códigos de erro do Firebase.
       if (error && typeof error === 'object' && 'code' in error) {
         switch (error.code) {
           case 'auth/invalid-credential':
@@ -74,7 +86,7 @@ export default function LoginForm() {
 
   return (
     <Card className="border-0 shadow-none">
-      <CardHeader>
+      <CardHeader className="text-center">
         <CardTitle className="text-3xl">Bem-vindo(a)!</CardTitle>
         <CardDescription>Acesse sua conta para gerenciar suas finanças.</CardDescription>
       </CardHeader>

@@ -2,6 +2,15 @@ import React from "react";
 import { CircleDollarSign } from "lucide-react";
 import Footer from "./footer";
 
+/**
+ * `AuthLayout` fornece um layout consistente para as páginas de autenticação (Login, Registro).
+ * Apresenta um layout de duas colunas em telas maiores com informações da marca
+ * e um layout de uma coluna em dispositivos móveis.
+ *
+ * @param {object} props - As props do componente.
+ * @param {React.ReactNode} props.children - O componente de formulário (por exemplo, LoginForm) a ser renderizado.
+ * @returns {JSX.Element} O componente de layout de autenticação.
+ */
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen w-full flex-col">
