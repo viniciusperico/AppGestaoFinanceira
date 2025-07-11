@@ -38,7 +38,7 @@ import { cn } from '@/lib/utils';
 import { format, addMonths, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
-import { Bar, BarChart as RechartsBarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
+import { BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import { Checkbox } from './ui/checkbox';
 import { useTransactions } from '@/components/transaction-provider';
 import { ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogDescription, ResponsiveDialogFooter, ResponsiveDialogHeader, ResponsiveDialogTitle, ResponsiveDialogTrigger } from './ui/responsive-dialog';
@@ -58,7 +58,7 @@ const transactionSchema = z.object({
   type: z.enum(['income', 'expense']),
   category: z.string().min(1, { message: 'Categoria é obrigatória.' }),
   date: z.date(),
-  paymentMethod: z.enum(['cash', 'creditCard']).optional(),
+  paymentMethod: z.enum(['pix_debit', 'creditCard']).optional(),
   creditCardId: z.string().optional(),
   installments: z.coerce.number().int().min(1).optional(),
   isRecurring: z.boolean().default(false),
@@ -152,7 +152,7 @@ export default function DashboardShell({ defaultOpen = false, transactionDefault
       type: 'expense',
       category: '',
       date: new Date(),
-      paymentMethod: 'cash',
+      paymentMethod: 'pix_debit',
       installments: 1,
       isRecurring: false,
       ...transactionDefaults
@@ -170,7 +170,7 @@ export default function DashboardShell({ defaultOpen = false, transactionDefault
       form.setValue('installments', 1);
       form.setValue('isRecurring', false);
     } else {
-        form.setValue('paymentMethod', 'cash');
+        form.setValue('paymentMethod', 'pix_debit');
     }
   }, [type, form]);
 
@@ -203,7 +203,7 @@ export default function DashboardShell({ defaultOpen = false, transactionDefault
         type: 'expense',
         category: '',
         date: new Date(),
-        paymentMethod: 'cash',
+        paymentMethod: 'pix_debit',
         installments: 1,
         isRecurring: false,
         recurringEndDate: undefined,
@@ -291,7 +291,7 @@ export default function DashboardShell({ defaultOpen = false, transactionDefault
         } else { // expense
             if (t.paymentMethod === 'creditCard') {
                 acc.cardExpense += t.amount;
-            } else { // cash or undefined (legacy)
+            } else if (t.paymentMethod === 'pix_debit') {
                 acc.cashExpense += t.amount;
             }
         }
@@ -397,7 +397,7 @@ export default function DashboardShell({ defaultOpen = false, transactionDefault
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Despesa com Dinheiro</CardTitle>
+            <CardTitle className="text-sm font-medium">Despesa com Pix/Débito</CardTitle>
             <Wallet className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -547,7 +547,7 @@ export default function DashboardShell({ defaultOpen = false, transactionDefault
                                         <Select onValueChange={field.onChange} value={field.value}>
                                             <FormControl><SelectTrigger><SelectValue placeholder="Selecione o método" /></SelectTrigger></FormControl>
                                             <SelectContent>
-                                                <SelectItem value="cash">Dinheiro</SelectItem>
+                                                <SelectItem value="pix_debit">Pix/Débito</SelectItem>
                                                 <SelectItem value="creditCard">Cartão de Crédito</SelectItem>
                                             </SelectContent>
                                         </Select>
@@ -604,7 +604,7 @@ export default function DashboardShell({ defaultOpen = false, transactionDefault
                                         field.onChange(checked);
                                         if (checked) {
                                           form.setValue('installments', 1);
-                                          form.setValue('paymentMethod', 'cash');
+                                          form.setValue('paymentMethod', 'pix_debit');
                                         } else {
                                           form.setValue('recurringEndDate', undefined);
                                           form.clearErrors('recurringEndDate');
@@ -719,7 +719,7 @@ export default function DashboardShell({ defaultOpen = false, transactionDefault
                                 {t.paymentMethod && (
                                     <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                                         {t.paymentMethod === 'creditCard' ? <CreditCardIcon className="h-3 w-3" /> : <Wallet className="h-3 w-3" />}
-                                        <span>{t.paymentMethod === 'creditCard' ? (creditCard?.name || 'Cartão') : 'Dinheiro'}</span>
+                                        <span>{t.paymentMethod === 'creditCard' ? (creditCard?.name || 'Cartão') : 'Pix/Débito'}</span>
                                     </div>
                                 )}
                             </div>
@@ -792,7 +792,7 @@ export default function DashboardShell({ defaultOpen = false, transactionDefault
                             {t.paymentMethod ? (
                                 <div className="flex items-center gap-2">
                                     {t.paymentMethod === 'creditCard' ? <CreditCardIcon className="h-4 w-4 text-muted-foreground" /> : <Wallet className="h-4 w-4 text-muted-foreground" />}
-                                    {t.paymentMethod === 'creditCard' ? (creditCard?.name || 'Cartão') : 'Dinheiro'}
+                                    {t.paymentMethod === 'creditCard' ? (creditCard?.name || 'Cartão') : 'Pix/Débito'}
                                 </div>
                             ) : null}
                         </TableCell>
@@ -839,7 +839,7 @@ export default function DashboardShell({ defaultOpen = false, transactionDefault
             ) : (
             <div className="h-[250px] md:h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
-                <RechartsBarChart data={chartData} layout="vertical" margin={{ left: 10, right: 20 }}>
+                <BarChart data={chartData} layout="vertical" margin={{ left: 10, right: 20 }}>
                   <XAxis type="number" hide />
                   <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} stroke="#888" fontSize={12} width={80} />
                   <Tooltip 
@@ -852,7 +852,7 @@ export default function DashboardShell({ defaultOpen = false, transactionDefault
                     formatter={(value: any) => [value.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'}), 'Total']}
                   />
                   <Bar dataKey="total" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
-                </RechartsBarChart>
+                </BarChart>
               </ResponsiveContainer>
             </div>
             )}

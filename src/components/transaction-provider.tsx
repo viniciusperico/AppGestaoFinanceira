@@ -1,3 +1,4 @@
+
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
@@ -64,7 +65,7 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
 
   useEffect(() => {
-    if (!user) {
+    if (!user || !db) {
       setTransactions([]);
       setLoading(false);
       return;
@@ -74,9 +75,6 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const transactionsData: Transaction[] = [];
-      if (querySnapshot.empty) {
-        setLoading(false);
-      }
       querySnapshot.forEach((doc) => {
         const data = doc.data();
         transactionsData.push({
@@ -99,7 +97,7 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
 
 
   const addTransaction = async (values: any) => {
-    if (!user) {
+    if (!user || !db) {
       toast({ variant: 'destructive', title: 'Erro de Autenticação', description: 'Você precisa estar logado para adicionar uma transação.' });
       return;
     }
@@ -109,7 +107,7 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
 
     try {
       // Gera um ID único para o grupo de transações
-      const groupId = doc(collection(db, 'users')).id; 
+      const groupId = doc(collection(db, 'users', user.uid, 'transactions')).id; 
       
       if (values.type === 'expense' && values.isRecurring && values.recurringEndDate) {
           // Lida com despesas recorrentes
@@ -125,7 +123,7 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
                   type: values.type,
                   category: values.category,
                   date: currentDate.toISOString(),
-                  paymentMethod: 'cash', // Recorrente padroniza para dinheiro
+                  paymentMethod: 'pix_debit', // Recorrente padroniza para dinheiro
                   groupId: groupId,
                   isOriginal: i === 0,
               });
@@ -213,7 +211,7 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
   };
   
   const updateTransaction = async (id: string, values: any) => {
-    if (!user) return;
+    if (!user || !db) return;
     const amount = values.type === 'expense' ? -Math.abs(values.amount) : Math.abs(values.amount);
     const transactionDocRef = doc(db, 'users', user.uid, 'transactions', id);
     
@@ -233,7 +231,7 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
       if (values.type === 'income') {
         dataToUpdate.paymentMethod = undefined;
         dataToUpdate.creditCardId = undefined;
-      } else if (values.paymentMethod === 'cash') {
+      } else if (values.paymentMethod === 'pix_debit') {
         dataToUpdate.creditCardId = undefined;
       }
 
@@ -252,7 +250,7 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
   };
 
   const updateTransactionGroup = async (groupId: string, values: any) => {
-    if (!user) return;
+    if (!user || !db) return;
 
     const transactionsRef = collection(db, 'users', user.uid, 'transactions');
     const q = query(transactionsRef, where('groupId', '==', groupId));
@@ -269,7 +267,7 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
                 creditCardId: values.creditCardId,
             };
 
-            if (values.paymentMethod === 'cash') {
+            if (values.paymentMethod === 'pix_debit') {
                 dataToUpdate.creditCardId = undefined;
             }
 
@@ -291,7 +289,7 @@ export function TransactionProvider({ children }: { children: ReactNode }) {
   };
 
   const deleteTransaction = async (id: string) => {
-    if (!user) return;
+    if (!user || !db) return;
     const transactionDocRef = doc(db, 'users', user.uid, 'transactions', id);
     try {
       await deleteDoc(transactionDocRef);

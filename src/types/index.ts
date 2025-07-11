@@ -17,7 +17,7 @@ export interface Transaction {
   /** A data da transação no formato de string ISO. */
   date: string;
   /** O método de pagamento, aplicável apenas a despesas. */
-  paymentMethod?: 'cash' | 'creditCard';
+  paymentMethod?: 'pix_debit' | 'creditCard';
   /** O ID do cartão de crédito usado, se aplicável. */
   creditCardId?: string;
   /** Um ID único para agrupar transações relacionadas (ex: parcelas ou despesas recorrentes). */
